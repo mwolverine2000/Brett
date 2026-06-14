@@ -79,7 +79,9 @@ async function loadChart(date) {
 
   try {
     const data = await fetchChartData(iso);
-    renderSongs(data.slice(0, 40));
+    // Sort by this_week position then take top 40
+    const sorted = [...data].sort((a, b) => (a.this_week || 999) - (b.this_week || 999));
+    renderSongs(sorted.slice(0, 40));
   } catch (err) {
     showError(err.message || 'Could not load chart data. Try a different date.');
   } finally {
@@ -100,8 +102,9 @@ async function fetchChartData(iso) {
       const res = await fetch(`${base}/${dateStr}.json`);
       if (res.ok) {
         const json = await res.json();
-        // The dataset is an array of song objects
-        if (Array.isArray(json) && json.length > 0) return json;
+        // Dataset returns { date, data: [...] }
+        const songs = Array.isArray(json) ? json : json.data;
+        if (Array.isArray(songs) && songs.length > 0) return songs;
       }
     } catch (_) {
       // network error — try next
@@ -128,8 +131,8 @@ function prevSaturday(iso) {
 function renderSongs(songs) {
   songList.innerHTML = '';
   songs.forEach((song, i) => {
-    const rank = i + 1;
-    const title = song.title || song.song || 'Unknown Title';
+    const rank = song.this_week || (i + 1);
+    const title = song.song || song.title || 'Unknown Title';
     const artist = song.artist || 'Unknown Artist';
     const weeksOnChart = song.weeks_on_chart;
     const peakPosition = song.peak_position;
@@ -138,7 +141,7 @@ function renderSongs(songs) {
     li.className = 'song-item';
     li.style.setProperty('--i', i);
 
-    const rankEl = `<div class="song-rank">${rank}</div>`;
+    const rankEl = `<div class="song-rank">#${rank}</div>`;
 
     const placeholder = `<div class="song-album-art-placeholder">${rankEmoji(rank)}</div>`;
 

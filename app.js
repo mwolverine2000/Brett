@@ -80,7 +80,7 @@ async function loadChart(date) {
 }
 
 async function fetchChartData(iso) {
-  const base = 'https://raw.githubusercontent.com/mhollingshead/billboard-hot-100/main/date';
+  const base = 'https://raw.githubusercontent.com/mwolverine2000/billboard-hot-100/main/date';
   const attempts = [iso, nextSaturday(iso), prevSaturday(iso)];
 
   for (const dateStr of attempts) {

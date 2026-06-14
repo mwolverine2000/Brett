@@ -277,9 +277,10 @@ function getArtistAppearances(charts, artist) {
     for (const e of chart.data) {
       if (e.artist === artist && e.this_week && e.this_week <= 100) {
         let g = map.get(e.song);
-        if (!g) { g = { song: e.song, peak: e.this_week, weeks: [] }; map.set(e.song, g); }
+        if (!g) { g = { song: e.song, peak: e.this_week, top40Weeks: 0, weeks: [] }; map.set(e.song, g); }
         g.weeks.push({ date: chart.date, position: e.this_week });
         if (e.this_week < g.peak) g.peak = e.this_week;
+        if (e.this_week <= 40) g.top40Weeks++;
       }
     }
   }
@@ -309,11 +310,19 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
       ` onclick="if(window.opener&&!window.opener.closed){window.opener.location.href=this.href;window.opener.focus();return false;}">` +
       `${formatShort(w.date)} &middot; #${w.position}</a>`
     ).join('');
+    const q = encodeURIComponent(`${g.song} ${artist}`);
+    const top40Str = g.top40Weeks ? ` · ${g.top40Weeks} in Top 40` : '';
     return `
       <li class="ah-song">
         <div class="ah-song-head">
           <span class="ah-song-title">${escHtml(g.song)}</span>
           <span class="ah-song-peak">peak #${g.peak}</span>
+        </div>
+        <div class="ah-song-stats">${g.weeks.length} wk${g.weeks.length !== 1 ? 's' : ''} on Hot 100${top40Str}</div>
+        <div class="ah-song-links">
+          <a class="ah-icon-btn ah-spotify" href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener noreferrer" title="Find on Spotify"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3a.75.75 0 0 1-1.03.25c-2.82-1.72-6.36-2.11-10.54-1.16a.75.75 0 1 1-.33-1.46c4.57-1.04 8.5-.59 11.65 1.34.36.22.47.69.25 1.03zm1.47-3.27a.94.94 0 0 1-1.29.31c-3.23-1.98-8.15-2.56-11.97-1.4a.94.94 0 1 1-.55-1.8c4.37-1.33 9.79-.68 13.5 1.6.44.27.58.85.31 1.29zm.13-3.4C15.74 8.3 8.9 8.08 5.02 9.26a1.12 1.12 0 1 1-.65-2.15C8.83 5.76 16.38 6.02 20.6 8.5a1.12 1.12 0 1 1-1.14 1.93z"/></svg></a>
+          <a class="ah-icon-btn ah-yt" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener noreferrer" title="Watch on YouTube"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg></a>
+          <a class="ah-icon-btn ah-wiki" href="https://en.wikipedia.org/w/index.php?search=${q}" target="_blank" rel="noopener noreferrer" title="Read on Wikipedia"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M5.1 5.3h4.2v.8c-.5 0-.9.1-1.1.2-.2.1-.3.3-.3.5 0 .2.1.5.3.9l2.4 5.2 1.6-3.6-.6-1.4c-.3-.6-.5-1-.7-1.2-.2-.2-.5-.3-1-.4v-.8h4.6v.8c-.5 0-.8.1-1 .2-.1.1-.2.3-.2.5 0 .1 0 .3.1.4l.1.4 2.3 5 2.2-5c.1-.3.2-.6.2-.8 0-.3-.1-.5-.3-.6-.2-.1-.5-.2-1-.2v-.8h3.6v.8c-.4 0-.7.2-.9.4-.2.2-.5.7-.8 1.4l-3.8 8.6h-.8L11 9.9l-3.1 6.9H7L3.3 8.1c-.3-.7-.6-1.2-.8-1.4-.2-.2-.5-.3-.9-.4v-.8h3.5z"/></svg></a>
         </div>
         <div class="ah-weeks">${weeks}</div>
       </li>`;
@@ -346,6 +355,12 @@ const ARTIST_DOC_STYLES = `
   .ah-week:hover { color:#fff; border-color:rgba(124,92,252,.5); background:rgba(124,92,252,.18); }
   .ah-empty { text-align:center; color:var(--muted); padding:3rem 1rem; }
   .ah-loading { text-align:center; color:var(--muted); padding:4rem 1rem; font-size:.95rem; line-height:1.7; }
+  .ah-song-stats { font-size:.72rem; color:var(--muted); margin:.2rem 0 .35rem; }
+  .ah-song-links { display:flex; gap:.15rem; margin-bottom:.4rem; }
+  .ah-icon-btn { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; color:#888; text-decoration:none; background:transparent; transition:color .15s ease,background .15s ease; }
+  .ah-spotify:hover { color:#1db954; background:rgba(29,185,84,.12); }
+  .ah-yt:hover { color:#f00; background:rgba(255,0,0,.1); }
+  .ah-wiki:hover { color:#fff; background:rgba(255,255,255,.12); }
 `;
 
 function artistDoc(artist, body) {

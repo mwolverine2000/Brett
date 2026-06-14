@@ -427,6 +427,51 @@ main {
   font-weight: 600;
 }
 
+.song-movement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  min-width: 3.2rem;
+  text-align: center;
+}
+
+.move-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.move-up {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.move-down {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.move-new {
+  color: var(--gold);
+  background: rgba(245, 200, 66, 0.15);
+  letter-spacing: 0.5px;
+}
+
+.move-same {
+  color: var(--text-muted);
+}
+
+.move-weeks {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .song-links {
   display: flex;
   align-items: center;

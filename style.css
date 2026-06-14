@@ -301,6 +301,47 @@ main {
 .song-item:nth-child(2) .song-rank { color: var(--silver); }
 .song-item:nth-child(3) .song-rank { color: var(--bronze); }
 
+/* Divider between the Top 40 and #41–#100 */
+.chart-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0 0.7rem;
+  list-style: none;
+}
+
+.chart-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 200, 66, 0.5), transparent);
+}
+
+.chart-divider-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.chart-divider-top {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.chart-divider-sub {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  white-space: nowrap;
+}
+
 .song-album-art {
   width: 46px;
   height: 46px;
@@ -342,6 +383,23 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.artist-link {
+  display: block;
+  max-width: 100%;
+  font-family: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.artist-link:hover {
+  color: var(--accent2);
+  text-decoration: underline;
 }
 
 .song-meta {
@@ -405,7 +463,139 @@ main {
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* ── Footer ──────────────────────────────────────── */
+.artist-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+
+.artist-modal-overlay.open { display: flex; }
+
+.artist-modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.artist-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.artist-modal-close:hover { color: var(--text); }
+
+.artist-modal-body .ah-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.2rem;
+}
+
+.artist-modal-body .ah-artist {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff 30%, var(--accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.artist-modal-body .ah-summary {
+  color: var(--accent2);
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+  font-weight: 600;
+}
+
+.artist-modal-body .ah-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 0.3rem;
+}
+
+.artist-modal-body .ah-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.artist-modal-body .ah-song {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.artist-modal-body .ah-song-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.artist-modal-body .ah-song-title { font-weight: 600; font-size: 0.98rem; }
+
+.artist-modal-body .ah-song-peak {
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.artist-modal-body .ah-weeks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.artist-modal-body .ah-week {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: var(--surface2);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.artist-modal-body .ah-week:hover {
+  color: #fff;
+  border-color: rgba(124, 92, 252, 0.5);
+  background: rgba(124, 92, 252, 0.18);
+}
+
+.artist-modal-body .ah-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem 1rem;
+}
+
 footer {
   text-align: center;
   padding: 1.5rem;

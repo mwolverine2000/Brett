@@ -17,7 +17,7 @@ dateInput.value = '1984-06-15';
 goBtn.addEventListener('click', handleSubmit);
 dateInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
 
-// Clicking an artist name opens their full Top 40 history
+// Clicking an artist name opens their full Hot 100 history
 songList.addEventListener('click', e => {
   const link = e.target.closest('.artist-link');
   if (link) openArtist(link.dataset.artist);
@@ -79,12 +79,12 @@ async function loadChart(date) {
   songList.innerHTML = '';
 
   chartTitle.textContent = 'Week of ' + formatDisplay(date);
-  chartSubtitle.textContent = 'Top 40 songs on the Billboard Hot 100';
+  chartSubtitle.textContent = 'The complete Billboard Hot 100';
 
   try {
     const data = await fetchChartData(iso);
     const sorted = [...data].sort((a, b) => (a.this_week || 999) - (b.this_week || 999));
-    renderSongs(sorted.slice(0, 40));
+    renderSongs(sorted.slice(0, 100));
   } catch (err) {
     showError(err.message || 'Could not load chart data. Try a different date.');
   } finally {
@@ -126,6 +126,7 @@ function prevSaturday(iso) {
 
 function renderSongs(songs) {
   songList.innerHTML = '';
+  let dividerInserted = false;
   songs.forEach((song, i) => {
     const rank = song.this_week || (i + 1);
     const title = song.song || song.title || 'Unknown Title';
@@ -133,9 +134,15 @@ function renderSongs(songs) {
     const weeksOnChart = song.weeks_on_chart;
     const peakPosition = song.peak_position;
 
+    // Divider marking the end of the Top 40, before position 41
+    if (!dividerInserted && rank > 40) {
+      songList.appendChild(makeChartDivider());
+      dividerInserted = true;
+    }
+
     const li = document.createElement('li');
     li.className = 'song-item';
-    li.style.setProperty('--i', i);
+    li.style.setProperty('--i', Math.min(i, 20)); // cap the stagger for long lists
 
     const rankEl = `<div class="song-rank">#${rank}</div>`;
     const placeholder = `<div class="song-album-art-placeholder">${rankEmoji(rank)}</div>`;
@@ -153,7 +160,7 @@ function renderSongs(songs) {
       ${placeholder}
       <div class="song-info">
         <div class="song-title">${escHtml(title)}</div>
-        <button class="song-artist artist-link" data-artist="${escHtml(artist)}" title="See all Top 40 hits by ${escHtml(artist)}">${escHtml(artist)}</button>
+        <button class="song-artist artist-link" data-artist="${escHtml(artist)}" title="See all Hot 100 hits by ${escHtml(artist)}">${escHtml(artist)}</button>
       </div>
       <div class="song-meta">
         ${weeksStr ? `<span class="song-weeks">${escHtml(weeksStr)}</span>` : ''}
@@ -180,6 +187,21 @@ function renderSongs(songs) {
 
     songList.appendChild(li);
   });
+}
+
+// Divider separating the Top 40 from the rest of the Hot 100 (#41–#100)
+function makeChartDivider() {
+  const li = document.createElement('li');
+  li.className = 'chart-divider';
+  li.setAttribute('aria-hidden', 'true');
+  li.innerHTML = `
+    <span class="chart-divider-line"></span>
+    <span class="chart-divider-label">
+      <span class="chart-divider-top">★ The Top 40 ★</span>
+      <span class="chart-divider-sub">#41–#100 of the Hot 100 below</span>
+    </span>
+    <span class="chart-divider-line"></span>`;
+  return li;
 }
 
 function rankEmoji(rank) {
@@ -212,7 +234,7 @@ function hideError() {
   errorEl.textContent = '';
 }
 
-/* Artist history — every Top 40 appearance across all charts */
+/* Artist history — every Hot 100 appearance across all charts */
 
 const ALL_CHARTS_URL = 'https://raw.githubusercontent.com/mwolverine2000/billboard-hot-100/main/all.json';
 let allChartsCache = null;
@@ -236,7 +258,7 @@ function getArtistAppearances(charts, artist) {
   for (const chart of charts) {
     if (!chart || !Array.isArray(chart.data)) continue;
     for (const e of chart.data) {
-      if (e.artist === artist && e.this_week && e.this_week <= 40) {
+      if (e.artist === artist && e.this_week && e.this_week <= 100) {
         let g = map.get(e.song);
         if (!g) { g = { song: e.song, peak: e.this_week, weeks: [] }; map.set(e.song, g); }
         g.weeks.push({ date: chart.date, position: e.this_week });
@@ -258,7 +280,7 @@ function formatShort(dateStr) {
 
 function buildArtistInnerHTML(artist, groups, baseUrl) {
   if (!groups.length) {
-    return `<div class="ah-empty">No Top 40 hits found for <strong>${escHtml(artist)}</strong>.</div>`;
+    return `<div class="ah-empty">No Hot 100 hits found for <strong>${escHtml(artist)}</strong>.</div>`;
   }
   const totalWeeks = groups.reduce((n, g) => n + g.weeks.length, 0);
   const songCount = groups.length;
@@ -282,8 +304,8 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
   return `
     <div class="ah-header">
       <h1 class="ah-artist">${escHtml(artist)}</h1>
-      <p class="ah-summary">${songCount} song${songCount !== 1 ? 's' : ''} in the Top 40 &middot; ${totalWeeks} weekly appearance${totalWeeks !== 1 ? 's' : ''}</p>
-      <p class="ah-hint">Click any week to open that Top 40 countdown.</p>
+      <p class="ah-summary">${songCount} song${songCount !== 1 ? 's' : ''} on the Hot 100 &middot; ${totalWeeks} weekly appearance${totalWeeks !== 1 ? 's' : ''}</p>
+      <p class="ah-hint">Click any week to open that Hot 100 countdown.</p>
     </div>
     <ul class="ah-list">${rows}</ul>`;
 }
@@ -311,7 +333,7 @@ const ARTIST_DOC_STYLES = `
 function artistDoc(artist, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width, initial-scale=1.0">` +
-    `<title>${escHtml(artist)} — Top 40 Appearances</title>` +
+    `<title>${escHtml(artist)} — Hot 100 Appearances</title>` +
     `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">` +
     `<style>${ARTIST_DOC_STYLES}</style></head><body>${body}</body></html>`;
 }

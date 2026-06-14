@@ -1,0 +1,194 @@
+const dateInput = document.getElementById('date-input');
+const goBtn = document.getElementById('go-btn');
+const chartSection = document.getElementById('chart-section');
+const chartTitle = document.getElementById('chart-title');
+const chartSubtitle = document.getElementById('chart-subtitle');
+const loadingEl = document.getElementById('loading');
+const errorEl = document.getElementById('error-msg');
+const songList = document.getElementById('song-list');
+
+// Billboard weekly charts start on this Saturday
+const CHART_START = new Date('1958-08-04');
+
+// Set sensible defaults on the date input
+const today = new Date();
+const todayStr = today.toISOString().slice(0, 10);
+dateInput.setAttribute('max', todayStr);
+
+// Default to a fun historical date
+dateInput.value = '1984-06-15';
+
+goBtn.addEventListener('click', handleSubmit);
+dateInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
+
+function handleSubmit() {
+  const raw = dateInput.value;
+  if (!raw) { showError('Please pick a date first.'); return; }
+
+  const chosen = new Date(raw + 'T12:00:00');
+  if (chosen < CHART_START) {
+    showError('Billboard Hot 100 charts begin on August 4, 1958. Please pick a later date.');
+    return;
+  }
+  if (chosen > today) {
+    showError('Please pick a date that is not in the future.');
+    return;
+  }
+
+  const chartDate = nearestChartSaturday(chosen);
+  loadChart(chartDate);
+}
+
+/**
+ * Billboard publishes weekly on Saturdays (historically).
+ * Find the most recent Saturday on or before the chosen date.
+ */
+function nearestChartSaturday(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun, 6=Sat
+  const offset = day === 6 ? 0 : day + 1; // days back to previous Saturday
+  d.setDate(d.getDate() - offset);
+  if (d < CHART_START) return new Date(CHART_START);
+  return d;
+}
+
+function toISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatDisplay(date) {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+}
+
+async function loadChart(date) {
+  const iso = toISO(date);
+
+  // Show chart section and loading
+  chartSection.classList.remove('hidden');
+  setLoading(true);
+  hideError();
+  songList.innerHTML = '';
+
+  chartTitle.textContent = 'Week of ' + formatDisplay(date);
+  chartSubtitle.textContent = 'Top 40 songs on the Billboard Hot 100';
+
+  try {
+    const data = await fetchChartData(iso);
+    renderSongs(data.slice(0, 40));
+  } catch (err) {
+    showError(err.message || 'Could not load chart data. Try a different date.');
+  } finally {
+    setLoading(false);
+  }
+}
+
+/**
+ * Fetch from the mhollingshead/billboard-hot-100 public GitHub dataset.
+ * Falls back to the next Saturday if the exact date file is missing.
+ */
+async function fetchChartData(iso) {
+  const base = 'https://raw.githubusercontent.com/mhollingshead/billboard-hot-100/main/date';
+  const attempts = [iso, nextSaturday(iso), prevSaturday(iso)];
+
+  for (const dateStr of attempts) {
+    try {
+      const res = await fetch(`${base}/${dateStr}.json`);
+      if (res.ok) {
+        const json = await res.json();
+        // The dataset is an array of song objects
+        if (Array.isArray(json) && json.length > 0) return json;
+      }
+    } catch (_) {
+      // network error — try next
+    }
+  }
+
+  throw new Error(
+    'No chart data found for this date. The dataset may not cover this week. Try a nearby date.'
+  );
+}
+
+function nextSaturday(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + 7);
+  return toISO(d);
+}
+
+function prevSaturday(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() - 7);
+  return toISO(d);
+}
+
+function renderSongs(songs) {
+  songList.innerHTML = '';
+  songs.forEach((song, i) => {
+    const rank = i + 1;
+    const title = song.title || song.song || 'Unknown Title';
+    const artist = song.artist || 'Unknown Artist';
+    const weeksOnChart = song.weeks_on_chart;
+    const peakPosition = song.peak_position;
+
+    const li = document.createElement('li');
+    li.className = 'song-item';
+    li.style.setProperty('--i', i);
+
+    const rankEl = `<div class="song-rank">${rank}</div>`;
+
+    const placeholder = `<div class="song-album-art-placeholder">${rankEmoji(rank)}</div>`;
+
+    const weeksStr = weeksOnChart ? `${weeksOnChart} wk${weeksOnChart !== 1 ? 's' : ''} on chart` : '';
+    const peakStr  = peakPosition  ? `Peak: #${peakPosition}` : '';
+    const peakClass = peakPosition === 1 || peakPosition === '1' ? 'peak-1' : '';
+
+    li.innerHTML = `
+      ${rankEl}
+      ${placeholder}
+      <div class="song-info">
+        <div class="song-title">${escHtml(title)}</div>
+        <div class="song-artist">${escHtml(artist)}</div>
+      </div>
+      <div class="song-meta">
+        ${weeksStr ? `<span class="song-weeks">${escHtml(weeksStr)}</span>` : ''}
+        ${peakStr  ? `<span class="song-peak ${peakClass}">${escHtml(peakStr)}</span>` : ''}
+      </div>
+    `;
+
+    songList.appendChild(li);
+  });
+}
+
+function rankEmoji(rank) {
+  if (rank === 1) return '🥇';
+  if (rank === 2) return '🥈';
+  if (rank === 3) return '🥉';
+  return '🎵';
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function setLoading(on) {
+  loadingEl.classList.toggle('hidden', !on);
+}
+
+function showError(msg) {
+  chartSection.classList.remove('hidden');
+  errorEl.textContent = msg;
+  errorEl.classList.remove('hidden');
+}
+
+function hideError() {
+  errorEl.classList.add('hidden');
+  errorEl.textContent = '';
+}

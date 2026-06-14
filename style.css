@@ -1,0 +1,398 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0d0d14;
+  --surface: #16161f;
+  --surface2: #1e1e2a;
+  --border: rgba(255,255,255,0.08);
+  --accent: #7c5cfc;
+  --accent2: #c084fc;
+  --gold: #f5c842;
+  --silver: #b0bec5;
+  --bronze: #cd7f32;
+  --text: #f0f0f5;
+  --text-muted: #8888aa;
+  --radius: 16px;
+  --transition: 0.2s ease;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Animated gradient background */
+.bg-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(124,92,252,0.18) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 80% 100%, rgba(192,132,252,0.12) 0%, transparent 60%);
+}
+
+header, main, footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ──────────────────────────────────────── */
+header {
+  padding: 2.5rem 2rem 1.5rem;
+  text-align: center;
+}
+
+.header-inner {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.logo-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.logo-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 30%, var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-text em {
+  font-style: italic;
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+/* ── Picker ──────────────────────────────────────── */
+main {
+  flex: 1;
+  padding: 0 1rem 4rem;
+}
+
+.picker-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.picker-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 2.5rem;
+  text-align: center;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+}
+
+.picker-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent2);
+  margin-bottom: 1rem;
+}
+
+.picker-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+#date-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid rgba(124,92,252,0.35);
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  flex: 1;
+  max-width: 230px;
+}
+
+#date-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,92,252,0.25);
+}
+
+#date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.go-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.7rem 1.6rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  box-shadow: 0 4px 16px rgba(124,92,252,0.4);
+}
+
+.go-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(124,92,252,0.5);
+}
+
+.go-btn:active {
+  transform: translateY(0);
+}
+
+.picker-hint {
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ── Chart Section ───────────────────────────────── */
+.chart-section {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.chart-section.hidden { display: none; }
+
+.chart-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.chart-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent2);
+  border: 1px solid rgba(192,132,252,0.4);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.chart-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.chart-subtitle {
+  margin-top: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* ── Loading / Error ─────────────────────────────── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.loading.hidden { display: none; }
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(124,92,252,0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-msg {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius);
+  color: #f87171;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.error-msg.hidden { display: none; }
+
+/* ── Song List ───────────────────────────────────── */
+.song-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.song-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1.2rem;
+  transition: background var(--transition), transform var(--transition), border-color var(--transition);
+  animation: fadeInUp 0.3s ease both;
+}
+
+.song-item:hover {
+  background: var(--surface2);
+  border-color: rgba(124,92,252,0.3);
+  transform: translateX(4px);
+}
+
+/* staggered animation */
+.song-item:nth-child(n) { animation-delay: calc(var(--i, 0) * 30ms); }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.song-rank {
+  min-width: 2.4rem;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Top 3 medal colors */
+.song-item:nth-child(1) .song-rank { color: var(--gold); font-size: 1.1rem; }
+.song-item:nth-child(2) .song-rank { color: var(--silver); }
+.song-item:nth-child(3) .song-rank { color: var(--bronze); }
+
+.song-album-art {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+
+.song-album-art-placeholder {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: var(--surface2);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.song-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.song-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-artist {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.song-weeks {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.song-peak {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.peak-1 {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* ── Footer ──────────────────────────────────────── */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 540px) {
+  .picker-card { padding: 1.5rem 1.25rem; }
+  .picker-row { flex-direction: column; }
+  #date-input { max-width: 100%; width: 100%; }
+  .go-btn { width: 100%; }
+  .chart-title { font-size: 1.5rem; }
+  .song-meta { display: none; }
+  .song-album-art, .song-album-art-placeholder { width: 38px; height: 38px; }
+}

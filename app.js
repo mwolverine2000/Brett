@@ -147,9 +147,23 @@ function renderSongs(songs) {
     const rankEl = `<div class="song-rank">#${rank}</div>`;
     const placeholder = `<div class="song-album-art-placeholder">${rankEmoji(rank)}</div>`;
 
-    const weeksStr = weeksOnChart ? `${weeksOnChart} wk${weeksOnChart !== 1 ? 's' : ''} on chart` : '';
-    const peakStr  = peakPosition  ? `Peak: #${peakPosition}` : '';
+    const peakStr   = peakPosition ? `Peak: #${peakPosition}` : '';
     const peakClass = peakPosition === 1 || peakPosition === '1' ? 'peak-1' : '';
+    const lastWeek  = song.last_week;
+    let moveBadgeHtml;
+    if (lastWeek == null) {
+      moveBadgeHtml = '<span class="move-badge move-new">NEW</span>';
+    } else {
+      const delta = lastWeek - (song.this_week || (i + 1));
+      if (delta > 0) {
+        moveBadgeHtml = `<span class="move-badge move-up">▲${delta}</span>`;
+      } else if (delta < 0) {
+        moveBadgeHtml = `<span class="move-badge move-down">▼${Math.abs(delta)}</span>`;
+      } else {
+        moveBadgeHtml = '<span class="move-badge move-same">&#8212;</span>';
+      }
+    }
+    const weeksStr = weeksOnChart ? `${weeksOnChart} wk${weeksOnChart !== 1 ? 's' : ''}` : '';
     const query = `${title} ${artist}`;
     const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
     const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(query)}`;
@@ -162,9 +176,12 @@ function renderSongs(songs) {
         <div class="song-title">${escHtml(title)}</div>
         <button class="song-artist artist-link" data-artist="${escHtml(artist)}" title="See all Hot 100 hits by ${escHtml(artist)}">${escHtml(artist)}</button>
       </div>
+      <div class="song-movement">
+        ${moveBadgeHtml}
+        ${weeksStr ? `<span class="move-weeks">${weeksStr}</span>` : ''}
+      </div>
       <div class="song-meta">
-        ${weeksStr ? `<span class="song-weeks">${escHtml(weeksStr)}</span>` : ''}
-        ${peakStr  ? `<span class="song-peak ${peakClass}">${escHtml(peakStr)}</span>` : ''}
+        ${peakStr ? `<span class="song-peak ${peakClass}">${escHtml(peakStr)}</span>` : ''}
       </div>
       <div class="song-links">
         <a class="icon-btn spotify-btn" href="${spotifyUrl}" target="_blank" rel="noopener noreferrer" title="Find on Spotify">

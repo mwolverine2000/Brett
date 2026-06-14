@@ -357,6 +357,54 @@ function fillAlbum(el, info, artist) {
   }
 }
 
+/* Artist thumbnail — TheAudioDB has real artist portraits; fall back to iTunes
+   artwork, and finally to a letter avatar so the slot is never broken/empty. */
+
+const artistImageCache = new Map();
+
+function lookupArtistImage(artist) {
+  if (artistImageCache.has(artist)) return artistImageCache.get(artist);
+  const name = albumQueryArtist(artist);
+  const p = (async () => {
+    try {
+      const r = await fetch(`https://www.theaudiodb.com/api/v1/json/2/search.php?s=${encodeURIComponent(name)}`);
+      if (r.ok) {
+        const j = await r.json();
+        const a = j && j.artists && j.artists[0];
+        if (a && a.strArtistThumb) return a.strArtistThumb + '/preview';
+      }
+    } catch (_) {}
+    try {
+      const r = await fetch(`https://itunes.apple.com/search?media=music&entity=album&limit=1&term=${encodeURIComponent(name)}`);
+      if (r.ok) {
+        const j = await r.json();
+        const res = j && Array.isArray(j.results) && j.results[0];
+        if (res && res.artworkUrl100) return res.artworkUrl100.replace('100x100', '300x300');
+      }
+    } catch (_) {}
+    return null;
+  })();
+  artistImageCache.set(artist, p);
+  return p;
+}
+
+// Swaps the letter avatar for a real image once one is found (keeps avatar on failure)
+function hydrateArtistImage(scope) {
+  if (!scope) return;
+  const el = scope.querySelector('.ah-artist-thumb[data-pending="1"]');
+  if (!el) return;
+  el.removeAttribute('data-pending');
+  lookupArtistImage(el.dataset.artist).then(src => {
+    if (!src) return;
+    const img = el.ownerDocument.createElement('img');
+    img.className = 'ah-thumb-img';
+    img.alt = el.dataset.artist;
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => { el.innerHTML = ''; el.appendChild(img); };
+    img.src = src;
+  });
+}
+
 function buildArtistInnerHTML(artist, groups, baseUrl) {
   if (!groups.length) {
     return `<div class="ah-empty">No Hot 100 hits found for <strong>${escHtml(artist)}</strong>.</div>`;
@@ -400,6 +448,9 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
       <p class="ah-hint">Click any week to open that Hot 100 countdown.</p>
     </div>
     <div class="ah-bio-section">
+      <div class="ah-artist-thumb" data-artist="${escHtml(artist)}" data-pending="1">
+        <span class="ah-thumb-fallback">${escHtml((artist.trim()[0] || '?').toUpperCase())}</span>
+      </div>
       <a class="ah-allmusic-btn" href="https://www.allmusic.com/search/artists/${encodeURIComponent(albumQueryArtist(artist))}" target="_blank" rel="noopener noreferrer">View ${escHtml(artist)} on AllMusic →</a>
     </div>
     <ul class="ah-list">${rows}</ul>`;
@@ -436,7 +487,10 @@ const ARTIST_DOC_STYLES = `
   .ah-album-links { display:inline-flex; gap:.3rem; }
   .ah-album-link { color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.05rem .45rem; font-size:.68rem; transition:all .15s ease; }
   .ah-album-link:hover { background:rgba(192,132,252,.18); color:#fff; }
-  .ah-bio-section { margin-bottom:1.25rem; }
+  .ah-bio-section { display:flex; align-items:center; gap:.9rem; margin-bottom:1.25rem; }
+  .ah-artist-thumb { width:64px; height:64px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--surface2); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; }
+  .ah-thumb-img { width:100%; height:100%; object-fit:cover; display:block; }
+  .ah-thumb-fallback { font-size:1.7rem; font-weight:700; color:var(--accent2); }
   .ah-allmusic-btn { display:inline-block; font-size:.8rem; font-weight:600; color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.35rem .85rem; transition:all .15s ease; }
   .ah-allmusic-btn:hover { background:rgba(192,132,252,.15); color:#fff; }
 `;
@@ -467,6 +521,7 @@ function openArtist(artist) {
         popup.document.open();
         popup.document.write(artistDoc(artist, inner));
         popup.document.close();
+        hydrateArtistImage(popup.document);
         hydrateAlbums(popup.document);
       } else {
         showArtistModal(artist, inner);
@@ -515,5 +570,6 @@ function showArtistModal(artist, innerHtml) {
   }
   overlay.querySelector('.artist-modal-body').innerHTML = innerHtml;
   overlay.classList.add('open');
+  hydrateArtistImage(overlay.querySelector('.artist-modal-body'));
   hydrateAlbums(overlay.querySelector('.artist-modal-body'));
 }

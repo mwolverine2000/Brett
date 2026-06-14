@@ -7,15 +7,11 @@ const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error-msg');
 const songList = document.getElementById('song-list');
 
-// Billboard weekly charts start on this Saturday
 const CHART_START = new Date('1958-08-04');
 
-// Set sensible defaults on the date input
 const today = new Date();
 const todayStr = today.toISOString().slice(0, 10);
 dateInput.setAttribute('max', todayStr);
-
-// Default to a fun historical date
 dateInput.value = '1984-06-15';
 
 goBtn.addEventListener('click', handleSubmit);
@@ -39,14 +35,10 @@ function handleSubmit() {
   loadChart(chartDate);
 }
 
-/**
- * Billboard publishes weekly on Saturdays (historically).
- * Find the most recent Saturday on or before the chosen date.
- */
 function nearestChartSaturday(date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0=Sun, 6=Sat
-  const offset = day === 6 ? 0 : day + 1; // days back to previous Saturday
+  const day = d.getDay();
+  const offset = day === 6 ? 0 : day + 1;
   d.setDate(d.getDate() - offset);
   if (d < CHART_START) return new Date(CHART_START);
   return d;
@@ -68,7 +60,6 @@ function formatDisplay(date) {
 async function loadChart(date) {
   const iso = toISO(date);
 
-  // Show chart section and loading
   chartSection.classList.remove('hidden');
   setLoading(true);
   hideError();
@@ -79,7 +70,6 @@ async function loadChart(date) {
 
   try {
     const data = await fetchChartData(iso);
-    // Sort by this_week position then take top 40
     const sorted = [...data].sort((a, b) => (a.this_week || 999) - (b.this_week || 999));
     renderSongs(sorted.slice(0, 40));
   } catch (err) {
@@ -89,10 +79,6 @@ async function loadChart(date) {
   }
 }
 
-/**
- * Fetch from the mhollingshead/billboard-hot-100 public GitHub dataset.
- * Falls back to the next Saturday if the exact date file is missing.
- */
 async function fetchChartData(iso) {
   const base = 'https://raw.githubusercontent.com/mwolverine2000/billboard-hot-100/main/date';
   const attempts = [iso, nextSaturday(iso), prevSaturday(iso)];
@@ -102,13 +88,10 @@ async function fetchChartData(iso) {
       const res = await fetch(`${base}/${dateStr}.json`);
       if (res.ok) {
         const json = await res.json();
-        // Dataset returns { date, data: [...] }
         const songs = Array.isArray(json) ? json : json.data;
         if (Array.isArray(songs) && songs.length > 0) return songs;
       }
-    } catch (_) {
-      // network error — try next
-    }
+    } catch (_) {}
   }
 
   throw new Error(
@@ -142,7 +125,6 @@ function renderSongs(songs) {
     li.style.setProperty('--i', i);
 
     const rankEl = `<div class="song-rank">#${rank}</div>`;
-
     const placeholder = `<div class="song-album-art-placeholder">${rankEmoji(rank)}</div>`;
 
     const weeksStr = weeksOnChart ? `${weeksOnChart} wk${weeksOnChart !== 1 ? 's' : ''} on chart` : '';

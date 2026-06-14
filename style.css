@@ -301,6 +301,47 @@ main {
 .song-item:nth-child(2) .song-rank { color: var(--silver); }
 .song-item:nth-child(3) .song-rank { color: var(--bronze); }
 
+/* Divider between the Top 40 and #41–#100 */
+.chart-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.25rem 0 0.7rem;
+  list-style: none;
+}
+
+.chart-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 200, 66, 0.5), transparent);
+}
+
+.chart-divider-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.chart-divider-top {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.chart-divider-sub {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  white-space: nowrap;
+}
+
 .song-album-art {
   width: 46px;
   height: 46px;

@@ -664,6 +664,42 @@ main {
 .artist-modal-body .ah-yt:hover { color: #f00; background: rgba(255, 0, 0, 0.1); }
 .artist-modal-body .ah-wiki:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
 
+.artist-modal-body .ah-album {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.1rem 0 0.45rem;
+  font-size: 0.74rem;
+}
+
+.artist-modal-body .ah-album-tag {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+
+.artist-modal-body .ah-album-name { color: var(--text); font-weight: 500; }
+.artist-modal-body .ah-album-name.ah-album-unknown { color: var(--text-muted); font-style: italic; font-weight: 400; }
+
+.artist-modal-body .ah-album-links { display: inline-flex; gap: 0.3rem; }
+
+.artist-modal-body .ah-album-link {
+  color: var(--accent2);
+  text-decoration: none;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.68rem;
+  transition: all 0.15s ease;
+}
+
+.artist-modal-body .ah-album-link:hover { background: rgba(192, 132, 252, 0.18); color: #fff; }
+
 .artist-modal-body .ah-empty {
   text-align: center;
   color: var(--text-muted);

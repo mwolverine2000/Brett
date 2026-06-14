@@ -727,9 +727,19 @@ main {
   color: var(--text);
 }
 
-.artist-modal-body .ah-bio-link {
-  display: inline-block;
+.artist-modal-body .ah-bio-text.ah-bio-muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.artist-modal-body .ah-bio-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
   margin-top: 0.55rem;
+}
+
+.artist-modal-body .ah-bio-link {
   font-size: 0.75rem;
   color: var(--accent2);
   text-decoration: none;

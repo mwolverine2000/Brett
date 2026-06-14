@@ -708,44 +708,19 @@ main {
 
 .artist-modal-body .ah-bio-section { margin-bottom: 1.25rem; }
 
-.artist-modal-body .ah-bio {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.9rem 1.05rem;
-}
-
-.artist-modal-body .ah-bio-loading {
-  color: var(--text-muted);
+.artist-modal-body .ah-allmusic-btn {
+  display: inline-block;
   font-size: 0.8rem;
-  font-style: italic;
-}
-
-.artist-modal-body .ah-bio-text {
-  font-size: 0.84rem;
-  line-height: 1.65;
-  color: var(--text);
-}
-
-.artist-modal-body .ah-bio-text.ah-bio-muted {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.artist-modal-body .ah-bio-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.9rem;
-  margin-top: 0.55rem;
-}
-
-.artist-modal-body .ah-bio-link {
-  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--accent2);
   text-decoration: none;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  transition: all 0.15s ease;
 }
 
-.artist-modal-body .ah-bio-link:hover { text-decoration: underline; }
+.artist-modal-body .ah-allmusic-btn:hover { background: rgba(192, 132, 252, 0.15); color: #fff; }
 
 footer {
   text-align: center;

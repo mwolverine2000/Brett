@@ -285,7 +285,8 @@ function getArtistAppearances(charts, artist) {
   }
   const groups = [...map.values()];
   groups.forEach(g => g.weeks.sort((a, b) => (a.date < b.date ? -1 : 1)));
-  groups.sort((a, b) => a.peak - b.peak || (a.weeks[0].date < b.weeks[0].date ? -1 : 1));
+  // Order songs by when they first appeared on the charts (earliest first)
+  groups.sort((a, b) => (a.weeks[0].date < b.weeks[0].date ? -1 : 1));
   return groups;
 }
 

@@ -297,99 +297,6 @@ function formatShort(dateStr) {
   });
 }
 
-/* Artist biography — MusicBrainz finds the right Wikipedia page, then we pull
-   the summary. We always offer an AllMusic link so the panel stays useful even
-   when no summary is available. */
-
-const bioCache = new Map();
-
-function allMusicUrl(artist) {
-  return `https://www.allmusic.com/search/artists/${encodeURIComponent(albumQueryArtist(artist))}`;
-}
-
-// Ask MusicBrainz for the artist's linked English Wikipedia article title
-async function wikiTitleFromMusicBrainz(artist) {
-  const searchUrl = `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent('"' + artist + '"')}&fmt=json&limit=1`;
-  const searchRes = await fetch(searchUrl);
-  if (!searchRes.ok) return null;
-  const searchJson = await searchRes.json();
-  if (!searchJson.artists || !searchJson.artists.length) return null;
-
-  const mbid = searchJson.artists[0].id;
-  const detailRes = await fetch(`https://musicbrainz.org/ws/2/artist/${mbid}?inc=url-rels&fmt=json`);
-  if (!detailRes.ok) return null;
-  const detailJson = await detailRes.json();
-
-  const wikiRel = (detailJson.relations || []).find(r =>
-    r.type === 'wikipedia' && r.url && r.url.resource &&
-    r.url.resource.includes('en.wikipedia.org')
-  );
-  if (!wikiRel) return null;
-  const m = wikiRel.url.resource.match(/\/wiki\/(.+)$/);
-  return m ? decodeURIComponent(m[1].replace(/_/g, ' ')) : null;
-}
-
-// Fallback: search English Wikipedia directly for the artist
-async function wikiTitleFromSearch(artist) {
-  const url = `https://en.wikipedia.org/w/api.php?action=query&list=search` +
-    `&srsearch=${encodeURIComponent(artist + ' musician')}&srlimit=1&format=json&origin=*`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const json = await res.json();
-  const hit = json.query && json.query.search && json.query.search[0];
-  return hit ? hit.title : null;
-}
-
-async function wikiSummary(title) {
-  const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-  if (!res.ok) return null;
-  const json = await res.json();
-  if (!json.extract || json.type === 'disambiguation') return null;
-  const url = (json.content_urls && json.content_urls.desktop && json.content_urls.desktop.page) ||
-    `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
-  return { extract: json.extract, url };
-}
-
-function fetchArtistBio(artist) {
-  if (bioCache.has(artist)) return bioCache.get(artist);
-  const p = (async () => {
-    try {
-      let title = null;
-      try { title = await wikiTitleFromMusicBrainz(artist); } catch (_) {}
-      if (!title) { try { title = await wikiTitleFromSearch(artist); } catch (_) {} }
-      if (!title) return null;
-      return await wikiSummary(title);
-    } catch (_) { return null; }
-  })();
-  bioCache.set(artist, p);
-  return p;
-}
-
-function hydrateBio(scope) {
-  if (!scope) return;
-  const bioEl = scope.querySelector('.ah-bio[data-pending="1"]');
-  if (!bioEl) return;
-  bioEl.removeAttribute('data-pending');
-  const artist = bioEl.dataset.artist;
-  fetchArtistBio(artist).then(info => fillBio(bioEl, info, artist));
-}
-
-function fillBio(el, info, artist) {
-  const amLink = `<a class="ah-bio-link" href="${allMusicUrl(artist)}" target="_blank" rel="noopener noreferrer">View on AllMusic →</a>`;
-  if (info && info.extract) {
-    el.innerHTML =
-      `<p class="ah-bio-text">${escHtml(info.extract)}</p>` +
-      `<div class="ah-bio-links">` +
-        `<a class="ah-bio-link" href="${escHtml(info.url)}" target="_blank" rel="noopener noreferrer">Read more on Wikipedia →</a>` +
-        amLink +
-      `</div>`;
-  } else {
-    el.innerHTML =
-      `<p class="ah-bio-text ah-bio-muted">No biography summary available for this artist.</p>` +
-      `<div class="ah-bio-links">${amLink}</div>`;
-  }
-}
-
 /* Album lookups via the iTunes Search API (free, no key, CORS-enabled) */
 
 const albumCache = new Map();
@@ -493,9 +400,7 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
       <p class="ah-hint">Click any week to open that Hot 100 countdown.</p>
     </div>
     <div class="ah-bio-section">
-      <div class="ah-bio" data-artist="${escHtml(artist)}" data-pending="1">
-        <span class="ah-bio-loading">Loading biography…</span>
-      </div>
+      <a class="ah-allmusic-btn" href="https://www.allmusic.com/search/artists/${encodeURIComponent(albumQueryArtist(artist))}" target="_blank" rel="noopener noreferrer">View ${escHtml(artist)} on AllMusic →</a>
     </div>
     <ul class="ah-list">${rows}</ul>`;
 }
@@ -532,13 +437,8 @@ const ARTIST_DOC_STYLES = `
   .ah-album-link { color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.05rem .45rem; font-size:.68rem; transition:all .15s ease; }
   .ah-album-link:hover { background:rgba(192,132,252,.18); color:#fff; }
   .ah-bio-section { margin-bottom:1.25rem; }
-  .ah-bio { background:var(--surface); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:.9rem 1.05rem; }
-  .ah-bio-loading { color:var(--muted); font-size:.8rem; font-style:italic; }
-  .ah-bio-text { font-size:.84rem; line-height:1.65; color:var(--text); }
-  .ah-bio-text.ah-bio-muted { color:var(--muted); font-style:italic; }
-  .ah-bio-links { display:flex; flex-wrap:wrap; gap:.9rem; margin-top:.55rem; }
-  .ah-bio-link { font-size:.75rem; color:var(--accent2); text-decoration:none; }
-  .ah-bio-link:hover { text-decoration:underline; }
+  .ah-allmusic-btn { display:inline-block; font-size:.8rem; font-weight:600; color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.35rem .85rem; transition:all .15s ease; }
+  .ah-allmusic-btn:hover { background:rgba(192,132,252,.15); color:#fff; }
 `;
 
 function artistDoc(artist, body) {
@@ -567,7 +467,6 @@ function openArtist(artist) {
         popup.document.open();
         popup.document.write(artistDoc(artist, inner));
         popup.document.close();
-        hydrateBio(popup.document);
         hydrateAlbums(popup.document);
       } else {
         showArtistModal(artist, inner);
@@ -616,6 +515,5 @@ function showArtistModal(artist, innerHtml) {
   }
   overlay.querySelector('.artist-modal-body').innerHTML = innerHtml;
   overlay.classList.add('open');
-  hydrateBio(overlay.querySelector('.artist-modal-body'));
   hydrateAlbums(overlay.querySelector('.artist-modal-body'));
 }

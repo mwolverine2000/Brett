@@ -17,6 +17,19 @@ dateInput.value = '1984-06-15';
 goBtn.addEventListener('click', handleSubmit);
 dateInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
 
+// Clicking an artist name opens their full Top 40 history
+songList.addEventListener('click', e => {
+  const link = e.target.closest('.artist-link');
+  if (link) openArtist(link.dataset.artist);
+});
+
+// Allow deep-linking to a specific week's countdown via ?date=YYYY-MM-DD
+const presetDate = new URLSearchParams(location.search).get('date');
+if (presetDate && /^\d{4}-\d{2}-\d{2}$/.test(presetDate)) {
+  dateInput.value = presetDate;
+  loadChart(new Date(presetDate + 'T12:00:00'));
+}
+
 function handleSubmit() {
   const raw = dateInput.value;
   if (!raw) { showError('Please pick a date first.'); return; }
@@ -140,7 +153,7 @@ function renderSongs(songs) {
       ${placeholder}
       <div class="song-info">
         <div class="song-title">${escHtml(title)}</div>
-        <div class="song-artist">${escHtml(artist)}</div>
+        <button class="song-artist artist-link" data-artist="${escHtml(artist)}" title="See all Top 40 hits by ${escHtml(artist)}">${escHtml(artist)}</button>
       </div>
       <div class="song-meta">
         ${weeksStr ? `<span class="song-weeks">${escHtml(weeksStr)}</span>` : ''}
@@ -197,4 +210,175 @@ function showError(msg) {
 function hideError() {
   errorEl.classList.add('hidden');
   errorEl.textContent = '';
+}
+
+/* Artist history — every Top 40 appearance across all charts */
+
+const ALL_CHARTS_URL = 'https://raw.githubusercontent.com/mwolverine2000/billboard-hot-100/main/all.json';
+let allChartsCache = null;
+let allChartsPromise = null;
+
+function loadAllCharts() {
+  if (allChartsCache) return Promise.resolve(allChartsCache);
+  if (allChartsPromise) return allChartsPromise;
+  allChartsPromise = fetch(ALL_CHARTS_URL)
+    .then(r => {
+      if (!r.ok) throw new Error('Could not load the full chart history.');
+      return r.json();
+    })
+    .then(data => { allChartsCache = data; return data; })
+    .catch(err => { allChartsPromise = null; throw err; });
+  return allChartsPromise;
+}
+
+function getArtistAppearances(charts, artist) {
+  const map = new Map();
+  for (const chart of charts) {
+    if (!chart || !Array.isArray(chart.data)) continue;
+    for (const e of chart.data) {
+      if (e.artist === artist && e.this_week && e.this_week <= 40) {
+        let g = map.get(e.song);
+        if (!g) { g = { song: e.song, peak: e.this_week, weeks: [] }; map.set(e.song, g); }
+        g.weeks.push({ date: chart.date, position: e.this_week });
+        if (e.this_week < g.peak) g.peak = e.this_week;
+      }
+    }
+  }
+  const groups = [...map.values()];
+  groups.forEach(g => g.weeks.sort((a, b) => (a.date < b.date ? -1 : 1)));
+  groups.sort((a, b) => a.peak - b.peak || (a.weeks[0].date < b.weeks[0].date ? -1 : 1));
+  return groups;
+}
+
+function formatShort(dateStr) {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric'
+  });
+}
+
+function buildArtistInnerHTML(artist, groups, baseUrl) {
+  if (!groups.length) {
+    return `<div class="ah-empty">No Top 40 hits found for <strong>${escHtml(artist)}</strong>.</div>`;
+  }
+  const totalWeeks = groups.reduce((n, g) => n + g.weeks.length, 0);
+  const songCount = groups.length;
+
+  const rows = groups.map(g => {
+    const weeks = g.weeks.map(w =>
+      `<a class="ah-week" data-date="${w.date}" href="${baseUrl}?date=${w.date}"` +
+      ` onclick="if(window.opener&&!window.opener.closed){window.opener.location.href=this.href;window.opener.focus();return false;}">` +
+      `${formatShort(w.date)} &middot; #${w.position}</a>`
+    ).join('');
+    return `
+      <li class="ah-song">
+        <div class="ah-song-head">
+          <span class="ah-song-title">${escHtml(g.song)}</span>
+          <span class="ah-song-peak">peak #${g.peak}</span>
+        </div>
+        <div class="ah-weeks">${weeks}</div>
+      </li>`;
+  }).join('');
+
+  return `
+    <div class="ah-header">
+      <h1 class="ah-artist">${escHtml(artist)}</h1>
+      <p class="ah-summary">${songCount} song${songCount !== 1 ? 's' : ''} in the Top 40 &middot; ${totalWeeks} weekly appearance${totalWeeks !== 1 ? 's' : ''}</p>
+      <p class="ah-hint">Click any week to open that Top 40 countdown.</p>
+    </div>
+    <ul class="ah-list">${rows}</ul>`;
+}
+
+const ARTIST_DOC_STYLES = `
+  :root { --bg:#0d0d14; --surface:#16161f; --surface2:#1e1e2a; --accent2:#c084fc; --gold:#f5c842; --text:#f0f0f5; --muted:#8888aa; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); padding:1.5rem; }
+  .ah-header { text-align:center; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1.2rem; }
+  .ah-artist { font-size:1.6rem; font-weight:700; background:linear-gradient(135deg,#fff 30%,var(--accent2)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .ah-summary { color:var(--accent2); font-size:.85rem; margin-top:.4rem; font-weight:600; }
+  .ah-hint { color:var(--muted); font-size:.75rem; margin-top:.3rem; }
+  .ah-list { list-style:none; display:flex; flex-direction:column; gap:.6rem; }
+  .ah-song { background:var(--surface); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:.85rem 1rem; }
+  .ah-song-head { display:flex; align-items:baseline; justify-content:space-between; gap:.75rem; margin-bottom:.55rem; }
+  .ah-song-title { font-weight:600; font-size:.98rem; }
+  .ah-song-peak { color:var(--gold); font-size:.75rem; font-weight:600; white-space:nowrap; }
+  .ah-weeks { display:flex; flex-wrap:wrap; gap:.35rem; }
+  .ah-week { font-size:.74rem; color:var(--muted); text-decoration:none; background:var(--surface2); border:1px solid rgba(255,255,255,0.07); border-radius:999px; padding:.25rem .6rem; transition:all .15s ease; white-space:nowrap; cursor:pointer; }
+  .ah-week:hover { color:#fff; border-color:rgba(124,92,252,.5); background:rgba(124,92,252,.18); }
+  .ah-empty { text-align:center; color:var(--muted); padding:3rem 1rem; }
+  .ah-loading { text-align:center; color:var(--muted); padding:4rem 1rem; font-size:.95rem; line-height:1.7; }
+`;
+
+function artistDoc(artist, body) {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">` +
+    `<title>${escHtml(artist)} — Top 40 Appearances</title>` +
+    `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">` +
+    `<style>${ARTIST_DOC_STYLES}</style></head><body>${body}</body></html>`;
+}
+
+function openArtist(artist) {
+  const baseUrl = location.origin + location.pathname;
+  const popup = window.open('', '_blank', 'width=560,height=780,scrollbars=yes,resizable=yes');
+
+  if (popup) {
+    popup.document.write(artistDoc(artist,
+      `<div class="ah-loading">Searching every Billboard chart since 1958<br>for <strong>${escHtml(artist)}</strong>…</div>`));
+    popup.document.close();
+  }
+
+  loadAllCharts()
+    .then(charts => {
+      const groups = getArtistAppearances(charts, artist);
+      const inner = buildArtistInnerHTML(artist, groups, baseUrl);
+      if (popup && !popup.closed) {
+        popup.document.open();
+        popup.document.write(artistDoc(artist, inner));
+        popup.document.close();
+      } else {
+        showArtistModal(artist, inner);
+      }
+    })
+    .catch(err => {
+      const msg = `<div class="ah-empty">${escHtml(err.message || 'Something went wrong.')}</div>`;
+      if (popup && !popup.closed) {
+        popup.document.open();
+        popup.document.write(artistDoc(artist, msg));
+        popup.document.close();
+      } else {
+        showArtistModal(artist, msg);
+      }
+    });
+}
+
+function showArtistModal(artist, innerHtml) {
+  let overlay = document.getElementById('artist-modal');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'artist-modal';
+    overlay.className = 'artist-modal-overlay';
+    overlay.innerHTML = `
+      <div class="artist-modal">
+        <button class="artist-modal-close" aria-label="Close">&times;</button>
+        <div class="artist-modal-body"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.classList.remove('open');
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.querySelector('.artist-modal-close').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+    overlay.querySelector('.artist-modal-body').addEventListener('click', e => {
+      const wk = e.target.closest('.ah-week');
+      if (!wk) return;
+      e.preventDefault();
+      const d = wk.dataset.date;
+      close();
+      dateInput.value = d;
+      loadChart(new Date(d + 'T12:00:00'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  overlay.querySelector('.artist-modal-body').innerHTML = innerHtml;
+  overlay.classList.add('open');
 }

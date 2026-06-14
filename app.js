@@ -148,7 +148,10 @@ function renderSongs(songs) {
     const weeksStr = weeksOnChart ? `${weeksOnChart} wk${weeksOnChart !== 1 ? 's' : ''} on chart` : '';
     const peakStr  = peakPosition  ? `Peak: #${peakPosition}` : '';
     const peakClass = peakPosition === 1 || peakPosition === '1' ? 'peak-1' : '';
-    const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`;
+    const query = `${title} ${artist}`;
+    const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(query)}`;
+    const wikiUrl = `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(query)}`;
 
     li.innerHTML = `
       ${rankEl}
@@ -161,11 +164,23 @@ function renderSongs(songs) {
         ${weeksStr ? `<span class="song-weeks">${escHtml(weeksStr)}</span>` : ''}
         ${peakStr  ? `<span class="song-peak ${peakClass}">${escHtml(peakStr)}</span>` : ''}
       </div>
-      <a class="yt-btn" href="${ytUrl}" target="_blank" rel="noopener noreferrer" title="Watch on YouTube">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-          <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/>
-        </svg>
-      </a>
+      <div class="song-links">
+        <a class="icon-btn spotify-btn" href="${spotifyUrl}" target="_blank" rel="noopener noreferrer" title="Find on Spotify">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3a.75.75 0 0 1-1.03.25c-2.82-1.72-6.36-2.11-10.54-1.16a.75.75 0 1 1-.33-1.46c4.57-1.04 8.5-.59 11.65 1.34.36.22.47.69.25 1.03zm1.47-3.27a.94.94 0 0 1-1.29.31c-3.23-1.98-8.15-2.56-11.97-1.4a.94.94 0 1 1-.55-1.8c4.37-1.33 9.79-.68 13.5 1.6.44.27.58.85.31 1.29zm.13-3.4C15.74 8.3 8.9 8.08 5.02 9.26a1.12 1.12 0 1 1-.65-2.15C8.83 5.76 16.38 6.02 20.6 8.5a1.12 1.12 0 1 1-1.14 1.93z"/>
+          </svg>
+        </a>
+        <a class="icon-btn yt-btn" href="${ytUrl}" target="_blank" rel="noopener noreferrer" title="Watch on YouTube">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/>
+          </svg>
+        </a>
+        <a class="icon-btn wiki-btn" href="${wikiUrl}" target="_blank" rel="noopener noreferrer" title="Read on Wikipedia">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+            <path d="M5.1 5.3h4.2v.8c-.5 0-.9.1-1.1.2-.2.1-.3.3-.3.5 0 .2.1.5.3.9l2.4 5.2 1.6-3.6-.6-1.4c-.3-.6-.5-1-.7-1.2-.2-.2-.5-.3-1-.4v-.8h4.6v.8c-.5 0-.8.1-1 .2-.1.1-.2.3-.2.5 0 .1 0 .3.1.4l.1.4 2.3 5 2.2-5c.1-.3.2-.6.2-.8 0-.3-.1-.5-.3-.6-.2-.1-.5-.2-1-.2v-.8h3.6v.8c-.4 0-.7.2-.9.4-.2.2-.5.7-.8 1.4l-3.8 8.6h-.8L11 9.9l-3.1 6.9H7L3.3 8.1c-.3-.7-.6-1.2-.8-1.4-.2-.2-.5-.3-.9-.4v-.8h3.5z"/>
+          </svg>
+        </a>
+      </div>
     `;
 
     songList.appendChild(li);

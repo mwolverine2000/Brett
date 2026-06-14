@@ -297,6 +297,72 @@ function formatShort(dateStr) {
   });
 }
 
+/* Artist biography from MusicBrainz → Wikipedia */
+
+const bioCache = new Map();
+
+function fetchArtistBio(artist) {
+  if (bioCache.has(artist)) return bioCache.get(artist);
+  const p = (async () => {
+    try {
+      const mbHeaders = { 'User-Agent': 'TopHot100TimeMachine/1.0 (mwolverine2000@gmail.com)' };
+      const searchUrl = `https://musicbrainz.org/ws/2/artist/?query=artist:${encodeURIComponent('"' + artist + '"')}&fmt=json&limit=1`;
+      const searchRes = await fetch(searchUrl, { headers: mbHeaders });
+      if (!searchRes.ok) return null;
+      const searchJson = await searchRes.json();
+      if (!searchJson.artists || !searchJson.artists.length) return null;
+
+      const mbid = searchJson.artists[0].id;
+      const detailRes = await fetch(
+        `https://musicbrainz.org/ws/2/artist/${mbid}?inc=url-rels&fmt=json`,
+        { headers: mbHeaders }
+      );
+      if (!detailRes.ok) return null;
+      const detailJson = await detailRes.json();
+
+      const wikiRel = (detailJson.relations || []).find(r =>
+        r.type === 'wikipedia' && r.url && r.url.resource &&
+        r.url.resource.includes('en.wikipedia.org')
+      );
+      if (!wikiRel) return null;
+
+      const wikiUrl = wikiRel.url.resource;
+      const titleMatch = wikiUrl.match(/\/wiki\/(.+)$/);
+      if (!titleMatch) return null;
+      const articleTitle = decodeURIComponent(titleMatch[1].replace(/_/g, ' '));
+
+      const summaryRes = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`
+      );
+      if (!summaryRes.ok) return null;
+      const summaryJson = await summaryRes.json();
+      if (!summaryJson.extract) return null;
+
+      return { extract: summaryJson.extract, url: wikiUrl };
+    } catch (_) { return null; }
+  })();
+  bioCache.set(artist, p);
+  return p;
+}
+
+function hydrateBio(scope) {
+  if (!scope) return;
+  const bioEl = scope.querySelector('.ah-bio[data-pending="1"]');
+  if (!bioEl) return;
+  bioEl.removeAttribute('data-pending');
+  fetchArtistBio(bioEl.dataset.artist).then(info => fillBio(bioEl, info));
+}
+
+function fillBio(el, info) {
+  if (info && info.extract) {
+    el.innerHTML =
+      `<p class="ah-bio-text">${escHtml(info.extract)}</p>` +
+      `<a class="ah-bio-link" href="${escHtml(info.url)}" target="_blank" rel="noopener noreferrer">Read more on Wikipedia →</a>`;
+  } else {
+    el.parentElement && (el.parentElement.style.display = 'none');
+  }
+}
+
 /* Album lookups via the iTunes Search API (free, no key, CORS-enabled) */
 
 const albumCache = new Map();
@@ -399,6 +465,11 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
       <p class="ah-summary">${songCount} song${songCount !== 1 ? 's' : ''} on the Hot 100 &middot; ${totalWeeks} weekly appearance${totalWeeks !== 1 ? 's' : ''}</p>
       <p class="ah-hint">Click any week to open that Hot 100 countdown.</p>
     </div>
+    <div class="ah-bio-section">
+      <div class="ah-bio" data-artist="${escHtml(artist)}" data-pending="1">
+        <span class="ah-bio-loading">Loading biography…</span>
+      </div>
+    </div>
     <ul class="ah-list">${rows}</ul>`;
 }
 
@@ -433,6 +504,12 @@ const ARTIST_DOC_STYLES = `
   .ah-album-links { display:inline-flex; gap:.3rem; }
   .ah-album-link { color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.05rem .45rem; font-size:.68rem; transition:all .15s ease; }
   .ah-album-link:hover { background:rgba(192,132,252,.18); color:#fff; }
+  .ah-bio-section { margin-bottom:1.25rem; }
+  .ah-bio { background:var(--surface); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:.9rem 1.05rem; }
+  .ah-bio-loading { color:var(--muted); font-size:.8rem; font-style:italic; }
+  .ah-bio-text { font-size:.84rem; line-height:1.65; color:var(--text); }
+  .ah-bio-link { display:inline-block; margin-top:.55rem; font-size:.75rem; color:var(--accent2); text-decoration:none; }
+  .ah-bio-link:hover { text-decoration:underline; }
 `;
 
 function artistDoc(artist, body) {
@@ -461,6 +538,7 @@ function openArtist(artist) {
         popup.document.open();
         popup.document.write(artistDoc(artist, inner));
         popup.document.close();
+        hydrateBio(popup.document);
         hydrateAlbums(popup.document);
       } else {
         showArtistModal(artist, inner);
@@ -509,5 +587,6 @@ function showArtistModal(artist, innerHtml) {
   }
   overlay.querySelector('.artist-modal-body').innerHTML = innerHtml;
   overlay.classList.add('open');
+  hydrateBio(overlay.querySelector('.artist-modal-body'));
   hydrateAlbums(overlay.querySelector('.artist-modal-body'));
 }

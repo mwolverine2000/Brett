@@ -306,57 +306,6 @@ function albumQueryArtist(artist) {
   return cleaned || String(artist || '');
 }
 
-function lookupAlbum(song, artist) {
-  const key = song + '|' + artist;
-  if (albumCache.has(key)) return albumCache.get(key);
-  const term = encodeURIComponent(`${albumQueryArtist(artist)} ${song}`);
-  const url = `https://itunes.apple.com/search?media=music&entity=song&limit=15&term=${term}`;
-  const p = fetch(url)
-    .then(r => (r.ok ? r.json() : null))
-    .then(json => {
-      if (!json || !Array.isArray(json.results)) return null;
-      const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const target = norm(song);
-      const withAlbum = json.results.filter(r => r.collectionName);
-      const pick =
-        withAlbum.find(r => norm(r.trackName) === target) ||
-        withAlbum.find(r => norm(r.trackName).includes(target) || target.includes(norm(r.trackName))) ||
-        withAlbum[0];
-      return pick ? { album: pick.collectionName } : null;
-    })
-    .catch(() => null);
-  albumCache.set(key, p);
-  return p;
-}
-
-// Fills in each song's album name + Discogs/Spotify links once iTunes responds
-function hydrateAlbums(scope) {
-  if (!scope) return;
-  scope.querySelectorAll('.ah-album[data-pending="1"]').forEach(el => {
-    el.removeAttribute('data-pending');
-    lookupAlbum(el.dataset.song, el.dataset.artist)
-      .then(info => fillAlbum(el, info, el.dataset.artist));
-  });
-}
-
-function fillAlbum(el, info, artist) {
-  const nameEl = el.querySelector('.ah-album-name');
-  const linksEl = el.querySelector('.ah-album-links');
-  if (!nameEl || !linksEl) return;
-  if (info && info.album) {
-    nameEl.textContent = info.album;
-    nameEl.classList.remove('ah-album-unknown');
-    const q = encodeURIComponent(`${info.album} ${albumQueryArtist(artist)}`);
-    linksEl.innerHTML =
-      `<a class="ah-album-link" href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener noreferrer">Spotify</a>` +
-      `<a class="ah-album-link" href="https://www.discogs.com/search/?q=${q}&type=release" target="_blank" rel="noopener noreferrer">Discogs</a>`;
-  } else {
-    nameEl.textContent = 'not found';
-    nameEl.classList.add('ah-album-unknown');
-    linksEl.innerHTML = '';
-  }
-}
-
 /* Artist thumbnail — TheAudioDB has real artist portraits; fall back to iTunes
    artwork, and finally to a letter avatar so the slot is never broken/empty. */
 
@@ -427,10 +376,10 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
           <span class="ah-song-peak">peak #${g.peak}</span>
         </div>
         <div class="ah-song-stats">${g.weeks.length} wk${g.weeks.length !== 1 ? 's' : ''} on Top 100${top40Str}</div>
-        <div class="ah-album" data-song="${escHtml(g.song)}" data-artist="${escHtml(artist)}" data-pending="1">
+        <div class="ah-album">
           <span class="ah-album-tag">Album</span>
-          <span class="ah-album-name">Looking up…</span>
-          <span class="ah-album-links"></span>
+          <a class="ah-album-link" href="https://www.discogs.com/search/?q=${q}&type=release" target="_blank" rel="noopener noreferrer">Discogs</a>
+          <a class="ah-album-link" href="https://open.spotify.com/search/${q}/albums" target="_blank" rel="noopener noreferrer">Spotify</a>
         </div>
         <div class="ah-song-links">
           <a class="ah-icon-btn ah-spotify" href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener noreferrer" title="Find on Spotify"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3a.75.75 0 0 1-1.03.25c-2.82-1.72-6.36-2.11-10.54-1.16a.75.75 0 1 1-.33-1.46c4.57-1.04 8.5-.59 11.65 1.34.36.22.47.69.25 1.03zm1.47-3.27a.94.94 0 0 1-1.29.31c-3.23-1.98-8.15-2.56-11.97-1.4a.94.94 0 1 1-.55-1.8c4.37-1.33 9.79-.68 13.5 1.6.44.27.58.85.31 1.29zm.13-3.4C15.74 8.3 8.9 8.08 5.02 9.26a1.12 1.12 0 1 1-.65-2.15C8.83 5.76 16.38 6.02 20.6 8.5a1.12 1.12 0 1 1-1.14 1.93z"/></svg></a>
@@ -482,9 +431,6 @@ const ARTIST_DOC_STYLES = `
   .ah-wiki:hover { color:#fff; background:rgba(255,255,255,.12); }
   .ah-album { display:flex; align-items:center; flex-wrap:wrap; gap:.4rem; margin:.1rem 0 .45rem; font-size:.74rem; }
   .ah-album-tag { text-transform:uppercase; letter-spacing:.5px; font-size:.6rem; color:var(--muted); background:var(--surface2); border-radius:4px; padding:.1rem .35rem; }
-  .ah-album-name { color:var(--text); font-weight:500; }
-  .ah-album-name.ah-album-unknown { color:var(--muted); font-style:italic; font-weight:400; }
-  .ah-album-links { display:inline-flex; gap:.3rem; }
   .ah-album-link { color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.05rem .45rem; font-size:.68rem; transition:all .15s ease; }
   .ah-album-link:hover { background:rgba(192,132,252,.18); color:#fff; }
   .ah-bio-section { display:flex; align-items:center; gap:.9rem; margin-bottom:1.25rem; }
@@ -525,7 +471,6 @@ function openArtist(artist) {
         popup.document.write(artistDoc(artist, inner));
         popup.document.close();
         hydrateArtistImage(popup.document);
-        hydrateAlbums(popup.document);
       } else {
         showArtistModal(artist, inner);
       }
@@ -574,5 +519,4 @@ function showArtistModal(artist, innerHtml) {
   overlay.querySelector('.artist-modal-body').innerHTML = innerHtml;
   overlay.classList.add('open');
   hydrateArtistImage(overlay.querySelector('.artist-modal-body'));
-  hydrateAlbums(overlay.querySelector('.artist-modal-body'));
 }

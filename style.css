@@ -683,11 +683,6 @@ main {
   padding: 0.1rem 0.35rem;
 }
 
-.artist-modal-body .ah-album-name { color: var(--text); font-weight: 500; }
-.artist-modal-body .ah-album-name.ah-album-unknown { color: var(--text-muted); font-style: italic; font-weight: 400; }
-
-.artist-modal-body .ah-album-links { display: inline-flex; gap: 0.3rem; }
-
 .artist-modal-body .ah-album-link {
   color: var(--accent2);
   text-decoration: none;

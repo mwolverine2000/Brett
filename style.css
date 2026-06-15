@@ -695,6 +695,10 @@ main {
 
 .artist-modal-body .ah-album-link:hover { background: rgba(192, 132, 252, 0.18); color: #fff; }
 
+.artist-modal-body .ah-album-name { font-weight: 600; color: var(--text); font-size: 0.76rem; }
+.artist-modal-body .ah-album-loading,
+.artist-modal-body .ah-album-unknown { color: var(--text-muted); font-weight: 400; font-style: italic; }
+
 .artist-modal-body .ah-empty {
   text-align: center;
   color: var(--text-muted);

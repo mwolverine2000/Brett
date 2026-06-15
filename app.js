@@ -297,10 +297,6 @@ function formatShort(dateStr) {
   });
 }
 
-/* Album lookups via the iTunes Search API (free, no key, CORS-enabled) */
-
-const albumCache = new Map();
-
 function albumQueryArtist(artist) {
   const cleaned = String(artist || '').replace(/\s+(featuring|feat\.?|ft\.?|with)\s+.*/i, '').trim();
   return cleaned || String(artist || '');

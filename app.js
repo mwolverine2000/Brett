@@ -36,7 +36,7 @@ function handleSubmit() {
 
   const chosen = new Date(raw + 'T12:00:00');
   if (chosen < CHART_START) {
-    showError('Billboard Hot 100 charts begin on August 4, 1958. Please pick a later date.');
+    showError('Hot 100 charts begin on August 4, 1958. Please pick a later date.');
     return;
   }
   if (chosen > today) {
@@ -79,7 +79,7 @@ async function loadChart(date) {
   songList.innerHTML = '';
 
   chartTitle.textContent = 'Week of ' + formatDisplay(date);
-  chartSubtitle.textContent = 'The complete Billboard Hot 100';
+  chartSubtitle.textContent = 'The complete Hot 100';
 
   try {
     const data = await fetchChartData(iso);
@@ -509,7 +509,7 @@ function openArtist(artist) {
 
   if (popup) {
     popup.document.write(artistDoc(artist,
-      `<div class="ah-loading">Searching every Billboard chart since 1958<br>for <strong>${escHtml(artist)}</strong>…</div>`));
+      `<div class="ah-loading">Searching every Hot 100 chart since 1958<br>for <strong>${escHtml(artist)}</strong>…</div>`));
     popup.document.close();
   }
 

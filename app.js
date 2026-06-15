@@ -333,6 +333,88 @@ function lookupArtistImage(artist) {
   return p;
 }
 
+/* Album-name lookups via the iTunes Search API (free, no key, CORS-enabled).
+   Chart data has no album field, so we resolve it from song + artist and then
+   point the Discogs/Spotify links straight at that album. Requests are
+   throttled so iOS Safari doesn't rate-limit a burst of ~50 lookups. */
+
+const albumCache = new Map();
+
+function cleanAlbumName(name) {
+  return String(name || '').replace(/\s*[-–]\s*(Single|EP)\s*$/i, '').trim();
+}
+
+function lookupAlbum(song, artist) {
+  const key = song + '||' + artist;
+  if (albumCache.has(key)) return albumCache.get(key);
+  const artistName = albumQueryArtist(artist).toLowerCase();
+  const term = `${albumQueryArtist(artist)} ${song}`;
+  const p = (async () => {
+    try {
+      const r = await fetch(`https://itunes.apple.com/search?media=music&entity=song&limit=15&term=${encodeURIComponent(term)}`);
+      if (r.ok) {
+        const j = await r.json();
+        const results = (j && Array.isArray(j.results)) ? j.results : [];
+        const matchesArtist = x => x.artistName && x.artistName.toLowerCase().includes(artistName);
+        // Prefer a real album by the right artist over a "- Single" release.
+        let best =
+          results.find(x => x.collectionName && matchesArtist(x) && !/\b(Single|EP)\b/i.test(x.collectionName)) ||
+          results.find(x => x.collectionName && matchesArtist(x)) ||
+          results.find(x => x.collectionName);
+        if (best && best.collectionName) {
+          const album = cleanAlbumName(best.collectionName);
+          // If the "album" is just the song title, it was a standalone single.
+          if (album && album.toLowerCase() !== String(song).toLowerCase()) return album;
+        }
+      }
+    } catch (_) {}
+    return null;
+  })();
+  albumCache.set(key, p);
+  return p;
+}
+
+// Resolves the album name for each song row, then rewrites its links to target
+// that album. Falls back to a song search when no album is found.
+function hydrateAlbums(scope) {
+  if (!scope) return;
+  const els = Array.from(scope.querySelectorAll('.ah-album[data-pending="1"]'));
+  if (!els.length) return;
+  let i = 0;
+  const CONCURRENCY = 4;
+  function next() {
+    if (i >= els.length) return;
+    const el = els[i++];
+    el.removeAttribute('data-pending');
+    lookupAlbum(el.dataset.song, el.dataset.artist)
+      .then(album => fillAlbum(el, album))
+      .catch(() => fillAlbum(el, null))
+      .then(next);
+  }
+  for (let k = 0; k < Math.min(CONCURRENCY, els.length); k++) next();
+}
+
+function fillAlbum(el, album) {
+  if (!el) return;
+  const artist = el.dataset.artist;
+  const song = el.dataset.song;
+  if (album) {
+    const q = encodeURIComponent(`${albumQueryArtist(artist)} ${album}`);
+    el.innerHTML =
+      `<span class="ah-album-tag">Album</span>` +
+      `<span class="ah-album-name">${escHtml(album)}</span>` +
+      `<a class="ah-album-link" href="https://www.discogs.com/search/?q=${q}&type=release" target="_blank" rel="noopener noreferrer">Discogs</a>` +
+      `<a class="ah-album-link" href="https://open.spotify.com/search/${encodeURIComponent(album + ' ' + albumQueryArtist(artist))}/albums" target="_blank" rel="noopener noreferrer">Spotify</a>`;
+  } else {
+    const q = encodeURIComponent(`${song} ${artist}`);
+    el.innerHTML =
+      `<span class="ah-album-tag">Album</span>` +
+      `<span class="ah-album-name ah-album-unknown">not found</span>` +
+      `<a class="ah-album-link" href="https://www.discogs.com/search/?q=${q}&type=release" target="_blank" rel="noopener noreferrer">Discogs</a>` +
+      `<a class="ah-album-link" href="https://open.spotify.com/search/${q}/albums" target="_blank" rel="noopener noreferrer">Spotify</a>`;
+  }
+}
+
 // Swaps the letter avatar for a real image once one is found (keeps avatar on failure)
 function hydrateArtistImage(scope) {
   if (!scope) return;
@@ -372,10 +454,9 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
           <span class="ah-song-peak">peak #${g.peak}</span>
         </div>
         <div class="ah-song-stats">${g.weeks.length} wk${g.weeks.length !== 1 ? 's' : ''} on Top 100${top40Str}</div>
-        <div class="ah-album">
+        <div class="ah-album" data-pending="1" data-song="${escHtml(g.song)}" data-artist="${escHtml(artist)}">
           <span class="ah-album-tag">Album</span>
-          <a class="ah-album-link" href="https://www.discogs.com/search/?q=${q}&type=release" target="_blank" rel="noopener noreferrer">Discogs</a>
-          <a class="ah-album-link" href="https://open.spotify.com/search/${q}/albums" target="_blank" rel="noopener noreferrer">Spotify</a>
+          <span class="ah-album-name ah-album-loading">finding…</span>
         </div>
         <div class="ah-song-links">
           <a class="ah-icon-btn ah-spotify" href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener noreferrer" title="Find on Spotify"><svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.5 17.3a.75.75 0 0 1-1.03.25c-2.82-1.72-6.36-2.11-10.54-1.16a.75.75 0 1 1-.33-1.46c4.57-1.04 8.5-.59 11.65 1.34.36.22.47.69.25 1.03zm1.47-3.27a.94.94 0 0 1-1.29.31c-3.23-1.98-8.15-2.56-11.97-1.4a.94.94 0 1 1-.55-1.8c4.37-1.33 9.79-.68 13.5 1.6.44.27.58.85.31 1.29zm.13-3.4C15.74 8.3 8.9 8.08 5.02 9.26a1.12 1.12 0 1 1-.65-2.15C8.83 5.76 16.38 6.02 20.6 8.5a1.12 1.12 0 1 1-1.14 1.93z"/></svg></a>
@@ -429,6 +510,9 @@ const ARTIST_DOC_STYLES = `
   .ah-album-tag { text-transform:uppercase; letter-spacing:.5px; font-size:.6rem; color:var(--muted); background:var(--surface2); border-radius:4px; padding:.1rem .35rem; }
   .ah-album-link { color:var(--accent2); text-decoration:none; border:1px solid rgba(192,132,252,.35); border-radius:999px; padding:.05rem .45rem; font-size:.68rem; transition:all .15s ease; }
   .ah-album-link:hover { background:rgba(192,132,252,.18); color:#fff; }
+  .ah-album-name { font-weight:600; color:var(--text); font-size:.76rem; }
+  .ah-album-loading { color:var(--muted); font-weight:400; font-style:italic; }
+  .ah-album-unknown { color:var(--muted); font-weight:400; font-style:italic; }
   .ah-bio-section { display:flex; align-items:center; gap:.9rem; margin-bottom:1.25rem; }
   .ah-artist-thumb { width:64px; height:64px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--surface2); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; }
   .ah-thumb-img { width:100%; height:100%; object-fit:cover; display:block; }
@@ -467,6 +551,7 @@ function openArtist(artist) {
         popup.document.write(artistDoc(artist, inner));
         popup.document.close();
         hydrateArtistImage(popup.document);
+        hydrateAlbums(popup.document);
       } else {
         showArtistModal(artist, inner);
       }
@@ -515,4 +600,5 @@ function showArtistModal(artist, innerHtml) {
   overlay.querySelector('.artist-modal-body').innerHTML = innerHtml;
   overlay.classList.add('open');
   hydrateArtistImage(overlay.querySelector('.artist-modal-body'));
+  hydrateAlbums(overlay.querySelector('.artist-modal-body'));
 }

@@ -505,7 +505,10 @@ function artistDoc(artist, body) {
 
 function openArtist(artist) {
   const baseUrl = location.origin + location.pathname;
-  const popup = window.open('', '_blank', 'width=560,height=780,scrollbars=yes,resizable=yes');
+  // iOS/iPadOS Safari restricts cross-window DOM access after document.close(),
+  // so album/image hydration silently fails in a popup tab. Use modal instead.
+  const isTouchDevice = navigator.maxTouchPoints > 1;
+  const popup = isTouchDevice ? null : window.open('', '_blank', 'width=560,height=780,scrollbars=yes,resizable=yes');
 
   if (popup) {
     popup.document.write(artistDoc(artist,

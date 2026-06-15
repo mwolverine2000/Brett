@@ -17,7 +17,7 @@ dateInput.value = '1984-06-15';
 goBtn.addEventListener('click', handleSubmit);
 dateInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
 
-// Clicking an artist name opens their full Hot 100 history
+// Clicking an artist name opens their full Top 100 history
 songList.addEventListener('click', e => {
   const link = e.target.closest('.artist-link');
   if (link) openArtist(link.dataset.artist);
@@ -36,7 +36,7 @@ function handleSubmit() {
 
   const chosen = new Date(raw + 'T12:00:00');
   if (chosen < CHART_START) {
-    showError('Hot 100 charts begin on August 4, 1958. Please pick a later date.');
+    showError('Top 100 charts begin on August 4, 1958. Please pick a later date.');
     return;
   }
   if (chosen > today) {
@@ -79,7 +79,7 @@ async function loadChart(date) {
   songList.innerHTML = '';
 
   chartTitle.textContent = 'Week of ' + formatDisplay(date);
-  chartSubtitle.textContent = 'The complete Hot 100';
+  chartSubtitle.textContent = 'The complete Top 100';
 
   try {
     const data = await fetchChartData(iso);
@@ -174,7 +174,7 @@ function renderSongs(songs) {
       ${placeholder}
       <div class="song-info">
         <div class="song-title">${escHtml(title)}</div>
-        <button class="song-artist artist-link" data-artist="${escHtml(artist)}" title="See all Hot 100 hits by ${escHtml(artist)}">${escHtml(artist)}</button>
+        <button class="song-artist artist-link" data-artist="${escHtml(artist)}" title="See all Top 100 hits by ${escHtml(artist)}">${escHtml(artist)}</button>
       </div>
       <div class="song-movement">
         ${moveBadgeHtml}
@@ -206,7 +206,7 @@ function renderSongs(songs) {
   });
 }
 
-// Divider separating the Top 40 from the rest of the Hot 100 (#41–#100)
+// Divider separating the Top 40 from the rest of the Top 100 (#41–#100)
 function makeChartDivider() {
   const li = document.createElement('li');
   li.className = 'chart-divider';
@@ -215,7 +215,7 @@ function makeChartDivider() {
     <span class="chart-divider-line"></span>
     <span class="chart-divider-label">
       <span class="chart-divider-top">★ The Top 40 ★</span>
-      <span class="chart-divider-sub">#41–#100 of the Hot 100 below</span>
+      <span class="chart-divider-sub">#41–#100 of the Top 100 below</span>
     </span>
     <span class="chart-divider-line"></span>`;
   return li;
@@ -251,7 +251,7 @@ function hideError() {
   errorEl.textContent = '';
 }
 
-/* Artist history — every Hot 100 appearance across all charts */
+/* Artist history — every Top 100 appearance across all charts */
 
 const ALL_CHARTS_URL = 'https://raw.githubusercontent.com/mwolverine2000/billboard-hot-100/main/all.json';
 let allChartsCache = null;
@@ -407,7 +407,7 @@ function hydrateArtistImage(scope) {
 
 function buildArtistInnerHTML(artist, groups, baseUrl) {
   if (!groups.length) {
-    return `<div class="ah-empty">No Hot 100 hits found for <strong>${escHtml(artist)}</strong>.</div>`;
+    return `<div class="ah-empty">No Top 100 hits found for <strong>${escHtml(artist)}</strong>.</div>`;
   }
   const totalWeeks = groups.reduce((n, g) => n + g.weeks.length, 0);
   const songCount = groups.length;
@@ -426,7 +426,7 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
           <span class="ah-song-title">${escHtml(g.song)}</span>
           <span class="ah-song-peak">peak #${g.peak}</span>
         </div>
-        <div class="ah-song-stats">${g.weeks.length} wk${g.weeks.length !== 1 ? 's' : ''} on Hot 100${top40Str}</div>
+        <div class="ah-song-stats">${g.weeks.length} wk${g.weeks.length !== 1 ? 's' : ''} on Top 100${top40Str}</div>
         <div class="ah-album" data-song="${escHtml(g.song)}" data-artist="${escHtml(artist)}" data-pending="1">
           <span class="ah-album-tag">Album</span>
           <span class="ah-album-name">Looking up…</span>
@@ -444,8 +444,8 @@ function buildArtistInnerHTML(artist, groups, baseUrl) {
   return `
     <div class="ah-header">
       <h1 class="ah-artist">${escHtml(artist)}</h1>
-      <p class="ah-summary">${songCount} song${songCount !== 1 ? 's' : ''} on the Hot 100 &middot; ${totalWeeks} weekly appearance${totalWeeks !== 1 ? 's' : ''}</p>
-      <p class="ah-hint">Click any week to open that Hot 100 countdown.</p>
+      <p class="ah-summary">${songCount} song${songCount !== 1 ? 's' : ''} on the Top 100 &middot; ${totalWeeks} weekly appearance${totalWeeks !== 1 ? 's' : ''}</p>
+      <p class="ah-hint">Click any week to open that Top 100 countdown.</p>
     </div>
     <div class="ah-bio-section">
       <div class="ah-artist-thumb" data-artist="${escHtml(artist)}" data-pending="1">
@@ -498,7 +498,7 @@ const ARTIST_DOC_STYLES = `
 function artistDoc(artist, body) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width, initial-scale=1.0">` +
-    `<title>${escHtml(artist)} — Hot 100 Appearances</title>` +
+    `<title>${escHtml(artist)} — Top 100 Appearances</title>` +
     `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">` +
     `<style>${ARTIST_DOC_STYLES}</style></head><body>${body}</body></html>`;
 }
@@ -509,7 +509,7 @@ function openArtist(artist) {
 
   if (popup) {
     popup.document.write(artistDoc(artist,
-      `<div class="ah-loading">Searching every Hot 100 chart since 1958<br>for <strong>${escHtml(artist)}</strong>…</div>`));
+      `<div class="ah-loading">Searching every Top 100 chart since 1958<br>for <strong>${escHtml(artist)}</strong>…</div>`));
     popup.document.close();
   }
 
